@@ -1,0 +1,90 @@
+---
+title: "Pertemuan 1"
+author: "Indra Maulana"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(readxl)
+data <- read_xlsx("C:/Users/LENOVO/Downloads/dataa.xlsx")
+data <- data[,-2]
+```
+
+```{r}
+dim(data)
+head(data,n=5)
+summary(data)
+```
+
+```{r}
+hist(data$Inflasi, main = "Histogram of Inflasi", col = "lightblue")
+```
+
+```{r}
+data.ts<- ts(data$Inflasi, start = 1, end = 249)
+plot.ts(data.ts, col = "blue", ylab = "Inflasi", xlab = "Week")
+title(main = "Time Series Plot of Inflasi", 
+      cex.sub = 0.8)
+points(data.ts, pch = 20, col = "red")
+```
+
+#### **Deskripsi Data**
+
+Data terdiri dari beberapa observasi yang berarti data tersebut diukur dalam rentang waktu 249 minggu. Berdasarkan summary data, terlihat bahwa data berada pada range 0 - 40 dengan rata-rata sebesar 27. Selanjutnya, berdasarkan plot deret waktu diatas, terlihat bahwa data cenderung stasioner.
+
+#### **Pemulusan Data dengan m = 4 dan m = 6**
+
+```{r}
+library(TTR)
+#m = 4
+pemulusan.sma4 <- SMA(data.ts, n = 4)
+forecast4 <- c(NA, pemulusan.sma4)
+data.gab <- cbind(c(data.ts, rep(NA,5)), c(pemulusan.sma4, rep(NA,5)), c(forecast4, rep(forecast4[length(forecast4)],4)))
+#menampilkan ramalan 5 periode kedepan
+data.gab
+```
+
+```{r}
+#Visualisasi data
+ts.plot(data.gab[,1], xlab="bulan ", ylab="Inflasi", main= "SMA N=4 of Inflasi Data")
+points(data.gab[,1])
+lines(data.gab[,2],col="green",lwd=2)
+lines(data.gab[,3],col="red",lwd=2)
+legend("bottomright",c("data aktual","data pemulusan","data peramalan"), lty=8, col=c("black","green","red"), cex=0.8)
+```
+
+```{r}
+pemulusan.sma6 <- SMA(data.ts, n = 6)
+forecast6 <- c(NA, pemulusan.sma6)
+data.gab2 <- cbind(c(data.ts, rep(NA,5)), c(pemulusan.sma6, rep(NA,5)), c(forecast6, rep(forecast6[length(forecast6)],4)))
+#menampilkan hasil pemulusan
+data.gab2
+```
+
+```{r}
+#Visualisasi data
+ts.plot(data.gab2[,1], xlab="bulan ", ylab="Inflasi", main= "SMA N=6 of Sales Data")
+points(data.gab2[,1], pch = 20)
+lines(data.gab2[,2],col="red",lwd=2)
+lines(data.gab2[,3],col="blue",lwd=2)
+legend("bottomright",c("data aktual","data pemulusan","data peramalan"), lty=8, col=c("black","pink","blue"), cex=0.8)
+```
+
+### Pemulusan Eksponensial
+
+```{r}
+dataa1 = HoltWinters(data$Inflasi, beta=FALSE, gamma=FALSE)
+dataa1
+dataa1$Inflasi
+plot(dataa1)
+```
+
+### Pemulusan Eksponensial Ganda
+
+```{r}
+dataa2 = HoltWinters(data$Inflasi, gamma=FALSE)
+dataa2
+dataa2$Inflasi
+plot(dataa2)
+```
