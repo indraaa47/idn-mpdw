@@ -1,0 +1,245 @@
+---
+title: "PERTEMUAN 2"
+author: "Indra Maulana"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+EPS1 <- read.table("C:/Users/LENOVO/Downloads/archive/EPS1.txt")
+EPS <- unlist(EPS1,use.names = FALSE)
+TS1 <- read.table("C:/Users/LENOVO/Downloads/archive/TS1.txt")
+TS <- unlist(TS1,use.names = FALSE)
+CE <- read.table("C:/Users/LENOVO/Downloads/archive/CE.txt")
+CE <- unlist(CE,use.names = FALSE)
+CP <- read.table("C:/Users/LENOVO/Downloads/archive/CP.txt")
+CP <- unlist(CP,use.names = FALSE)
+FS1 <- read.table("C:/Users/LENOVO/Downloads/archive/FS1.txt")
+FS <- unlist(FS1,use.names = FALSE)
+PS1 <- read.table("C:/Users/LENOVO/Downloads/archive/PS1.txt")
+PS <- unlist(PS1,use.names = FALSE)
+SE <- read.table("C:/Users/LENOVO/Downloads/archive/SE.txt")
+SE <- unlist(SE,use.names = FALSE)
+VS1 <- read.table("C:/Users/LENOVO/Downloads/archive/VS1.txt")
+VS <- unlist(VS1,use.names = FALSE)
+
+library(mctest)
+library(olsrr)
+library(carData)
+library(car)
+```
+
+Kumpulan data ini membahas penilaian kondisi alat uji hidrolik berdasarkan data multisensor. Empat jenis kesalahan ditumpangkan dengan beberapa tingkat keparahan yang menghambat kuantifikasi selektif.Kumpulan data diperoleh secara eksperimental dengan alat uji hidrolik. Rig pengujian ini terdiri dari sirkuit kerja primer dan sirkuit filtrasi pendingin sekunder yang dihubungkan melalui tangki oli [1], [2]. Sistem ini secara siklis mengulangi siklus beban konstan (durasi 60 detik) dan mengukur nilai proses seperti tekanan, aliran volume, dan suhu, sementara kondisi empat komponen hidrolik (pendingin, katup, pompa, dan akumulator) bervariasi secara kuantitatif.
+
+Informasi Atribut:
+
+Sensor Kuantitas fisik PS1 Tekanan\
+PS2 : Tekanan\
+PS3 : Tekanan\
+PS4 :Tekanan\
+PS5 : Tekanan\
+PS6 :Tekanan\
+EPS1 :Tenaga motor\
+FS1: Aliran volume\
+FS2: Aliran volume\
+TS1 : Suhu\
+TS2 :Suhu\
+TS3 :Suhu\
+TS4 :Suhu\
+VS1 :Getaran\
+CE :Efisiensi pendinginan (virtual)\
+CP :Daya pendinginan (virtual)\
+SE :Faktor efisiensi\
+
+```{r Keterangan data}
+Y <- CE    # Efisiensi
+X1 <- TS   # Rataan suhu
+X2 <- EPS   # Tenaga Motor
+X3 <- CP   # Daya Pendinginan
+X4 <- FS   # Rataan Aliran Volume
+X5 <- PS   # Rataan Tekanan
+X6 <- SE   # Faktor efisiensi
+X7 <- VS   # Getaran
+df <- data.frame(Y,X1,X2,X3,X4,X5,X6,X7)
+```
+
+```{r view data}
+head(df,5) 
+tail(df,5)
+str(df)
+```
+
+## EKPLORASI DATA
+
+```{r}
+#Deskriptif statistik dalam bentuk dasar
+summary(df)
+```
+
+```{r}
+#Plot antar peubah
+plot(df,pch=20,cex=1,col="cornflowerblue",main="Plot Antar Peubah")
+```
+
+## MODEL REGRESI
+
+```{r}
+#Membuat Model Regresi Linear Berganda (RLB)
+reg.df <- lm(formula = Y~., data=df) 
+reg.df
+anova(reg.df)
+summary(reg.df)
+```
+
+```{r}
+#Parameters
+my_confidence<-0.95
+my_digits<-6
+options(scipen=0,digit=7)
+
+#Hasil Regresi (tampilan lebih interaktif)
+library(jtools)
+summ(reg.df,confint=TRUE,ci.width=my_confidence,digits=my_digits)
+```
+
+## CEK MULTIKOLINEARITAS DAN PENANGANAN
+
+```{r}
+#Asumsi Multikolinearitas
+#Eksplorasi asumsi multikol
+vif_values <- vif(reg.df)
+print(vif_values)
+```
+
+```{r}
+#Penanganan Multikol (menghapus X5)
+data.1 <- df[,-6]
+head(data.1)
+model.1 <-lm(Y~.,data=data.1)
+summary(model.1)   # Multiple R-squared:  0.9683,	Adjusted R-squared:  0.9683
+
+vif.1 <- vif(model.1)
+print(vif.1)
+```
+
+```{r}
+#Penanganan Multikol (menghapus X2)
+data.2 <- df[,-3]
+head(data.2)
+model.2 <-lm(Y~.,data=data.2)
+summary(model.2)   # Multiple R-squared:  0.9682,	Adjusted R-squared:  0.9682 
+
+vif.2 <- vif(model.2)
+print(vif.2)
+```
+
+#Take note: diambil data.1 (setelah X5 di hapus dari data.frame) karena Multiple R-squared lebih besar daripada data.2 (setelah X2 di hapus dari data.frame)
+
+```{r}
+residu <- rstandard(model.1)
+data <- cbind(data.1,residu)
+head(data)
+```
+
+## Lanjutan Eksplorasi Data
+
+```{r}
+model_residuals = df$residu
+hist(model_residuals, col="slateblue3",main="Histogram dari Galat Model Regresi",
+     xlab="galat model",ylab="densitas/frekuensi",col.main="midnightblue")
+#Distribusi dari sisaan melalui boxplot
+boxplot(model_residuals, col="violetred3",main="Boxplot dari Galat Model Regresi",col.main="maroon4")
+```
+
+```{r}
+# Korelasi
+library(PerformanceAnalytics)
+cor(df)
+
+#Visualisasi korelasi dengan correlogram
+library(corrplot)
+library(RColorBrewer)
+corrplot(cor(df),type="upper",addCoef.col = "black",
+         tl.col= "black", # warna tulisan
+         tl.srt= 45, # kemiringan tulisan 45 derajat
+         number.cex = 0.8,tl.cex=0.8,cl.cex = 0.6,method = "ellipse",  
+         col=brewer.pal(n=9,name="BuPu")) #brewer.pal sbg color palletenya
+title<-title("Correlogram dari Dataset df",adj=0.3,line=0)
+```
+
+## Uji Asumsi
+
+### Eksplorasi Asumsi
+
+```{r}
+plot(data,1) #plot sisaan vs yduga
+plot(data,2) #qq-plot
+
+plot(data,which=5) # ini buat deteksi amatan yg pengaruh
+```
+
+```{r}
+# plot sisaan vs urutan
+plot(x = 1:dim(data)[1],
+     y = data$residu,
+     type = 'b', 
+     ylab = "residu",
+     xlab = "Observation")
+```
+
+```{r}
+#Secara eksplorasi (autokorelasi, gaussmarkov syarat3)
+plot(data$residu, type="o");
+abline(h=0,col="red")
+
+library(olsrr)
+ols_plot_resid_hist(data)
+ols_plot_resid_qq(data)
+```
+
+### Asumsi Gauss-Markov
+
+```{r}
+#1. Nilai harapan/rataan sisaan sama dengan nol
+#Dengan fungsi t.test dilakukan uji t
+#H0: nilai harapan/rataan galat sama dengan nol
+#H1: nilai harapan/rataan galat tidak sama dengan nol
+
+t.test(data$residu,mu=0, conf.level = 0.95)
+```
+
+```         
+Nilai p-value: 2.287e-16 kurang dari 0.05 jadi terima H0.nilai harapan/rataan galat sama dengan nol
+```
+
+```{r}
+#2. Ragam galat/sisaan homogen (homoscedasticity)
+cek.homogen = lm(formula = abs(data$residu) ~., 
+                 data = data)
+summary(cek.homogen)
+```
+
+Nilai p-value: 2.2e-16 kurang dari 0.05 artinya ragam galat/sisaan homogen (homoscedasticity)
+
+```{r}
+#3. Sisaan saling bebas/tidak ada autokorelasi
+#H0: Sisaan saling bebas
+#H1: Sisaan tidak saling bebas
+
+library(randtests)
+runs.test(data$residu)
+
+#durbin watson 
+#H0:tidak terjadi autokorelasi
+#H1: terjadi autokorelasi
+library(lmtest)
+dwtest(data)
+```
+
+Nilai p-value kurang dari 0.05 artinya ragam galat/sisaan homogen (homoscedasticity)
+
+Dari atas dapat disimpulkan bahwa baik multikolineariatas dan uji lainnya terpenuhi sehingga di dapatkan model terbaik yaitu:
+
+Y = 6.357324 - 0.508018 X1 + 0.001058 X2 + 26.582573 X3 - 0.040183 X4 - 0.010188 X6 - 3.068856 X7
+
+Dari model dapat dilihat bahwa semakin tinggi X2 dan X3 berbanding lurus dengan Y tetapi sebaliknya dengan X1,X4,X6,dan X7
